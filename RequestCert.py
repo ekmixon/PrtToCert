@@ -96,24 +96,25 @@ def GetAzureADP2PCert(TenantId, Prt, UserName, HexCtx, HexDerivedKey, passPhrase
         'csr': Csr
     }
 
-    dataToSign = base64url_encode(json_encode(header)) + '.' + base64url_encode(json_encode(message))
+    dataToSign = f'{base64url_encode(json_encode(header))}.{base64url_encode(json_encode(message))}'
+
 
     signature =  base64url_encode(bytes.fromhex(Sign(dataToSign.encode(), DerivedKey).decode())) 
 
-    token = dataToSign + '.' + signature
+    token = f'{dataToSign}.{signature}'
 
     certRequest = sess.post('https://login.microsoftonline.com/{0}/oauth2/token'.format(TenantId), verify=False, data = {'grant_type': "urn:ietf:params:oauth:grant-type:jwt-bearer",
                                                                                                                                            'request': token.encode('ascii')})
     x5c = ast.literal_eval(certRequest.text)['x5c']
     pemCert = CertToPem(x5c)
 
-    with open(UserName + '.cer', 'w') as f:
+    with open(f'{UserName}.cer', 'w') as f:
         f.write(pemCert)
-        
+
     pkcs = OpenSSL.crypto.PKCS12()
     pkcs.set_privatekey(OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, PrivateKey))
     pkcs.set_certificate(OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, pemCert))
-    with open(UserName + '.pfx', 'wb') as file:
+    with open(f'{UserName}.pfx', 'wb') as file:
         file.write(pkcs.export(passphrase=passPhrase.encode()))
 
     print("Done")
